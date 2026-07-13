@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone *)",
+      "Bash(ls -la ~/.claude/skills/gstack 2>&1 | head -50)"
+    ]
+  }
+}

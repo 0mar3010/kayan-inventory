@@ -1,0 +1,163 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL") // pooled (PgBouncer) connection — used at runtime
+  directUrl  = env("DIRECT_URL")   // direct connection — used only for migrations
+  extensions = [pg_trgm]
+}
+
+enum SourceSystem {
+  LOCAL_EXCEL
+  SHOPIFY
+}
+
+enum MatchStatus {
+  AUTO
+  MANUAL
+  UNMATCHED
+}
+
+enum SyncRunStatus {
+  PENDING
+  RUNNING
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+}
+
+enum Role {
+  SALES
+  ADMIN
+}
+
+// Canonical product — the single source of truth both
+// Shopify and the local Excel export are matched against.
+model Product {
+  id           String   @id @default(cuid())
+  arabicName   String
+  englishName  String?
+  brand        String
+  category     String?
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  identifiers  ProductIdentifier[]
+  snapshots    InventorySnapshot[]
+  syncRunItems SyncRunItem[]
+
+  @@index([brand])
+}
+
+// Known prefix patterns per brand, used to normalize
+// model numbers before matching (e.g. "SON-" for Sonai).
+// Lives in DB, not code, so new prefixes don't need a deploy.
+model BrandPrefix {
+  id     String @id @default(cuid())
+  brand  String
+  prefix String
+
+  @@unique([brand, prefix])
+}
+
+// Crosswalk: every external identifier (Excel model number,
+// Shopify SKU) maps to exactly one canonical Product, with a
+// confidence score and, once a human confirms it, a permanent
+// record so it's never re-matched again.
+model ProductIdentifier {
+  id              String       @id @default(cuid())
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  source          SourceSystem
+  rawExternalId   String
+  normalizedId    String
+  confidenceScore Float        @default(1.0)
+  confirmedBy     String?
+  confirmedAt     DateTime?
+  createdAt       DateTime     @default(now())
+
+  @@unique([source, rawExternalId])
+  @@index([normalizedId])
+  @@index([productId])
+}
+// Note: after migration, add manually via raw SQL:
+//   CREATE INDEX product_identifier_normalized_trgm_idx
+//   ON "ProductIdentifier" USING gin ("normalizedId" gin_trgm_ops);
+// Prisma can't declare a GIN/trgm index natively — needs a
+// manual migration step once, right after `prisma migrate dev`.
+
+// Point-in-time stock reading. Append-only — never update a
+// row in place. Gives a full audit trail per product per source.
+model InventorySnapshot {
+  id         String       @id @default(cuid())
+  productId  String
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  source     SourceSystem
+  quantity   Int
+  recordedAt DateTime     @default(now())
+
+  @@index([productId, recordedAt])
+}
+
+// One row per Excel-file upload / sync attempt.
+model SyncRun {
+  id              String        @id @default(cuid())
+  fileName        String
+  startedAt       DateTime      @default(now())
+  finishedAt      DateTime?
+  rowsTotal       Int           @default(0)
+  rowsAutoMatched Int           @default(0)
+  rowsFlagged     Int           @default(0)
+  status          SyncRunStatus @default(PENDING)
+  triggeredBy     String?
+
+  items           SyncRunItem[]
+}
+
+// One row per line in the uploaded Excel file, with its
+// match outcome and the staged qty diff pending approval.
+model SyncRunItem {
+  id               String      @id @default(cuid())
+  syncRunId        String
+  syncRun          SyncRun     @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+  rawRowData       Json
+  matchStatus      MatchStatus
+  matchedProductId String?
+  matchedProduct   Product?    @relation(fields: [matchedProductId], references: [id])
+  confidenceScore  Float?
+  oldQuantity      Int?
+  newQuantity      Int?
+  approved         Boolean     @default(false)
+
+  @@index([syncRunId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(SALES)
+  createdAt DateTime @default(now())
+
+  activityLogs ActivityLog[]
+}
+
+// Generic audit log — every state-changing action, not just sync.
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}
