@@ -2,12 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 interface Props {
-  active: "dashboard" | "review-queue";
+  active: "dashboard" | "sync" | "review-queue";
   email?: string;
 }
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "المنتجات", href: "/" },
+  { key: "sync", label: "مزامنة المخزون", href: "/sync" },
   { key: "review-queue", label: "قائمة المراجعة", href: "/review-queue" },
 ] as const;
 

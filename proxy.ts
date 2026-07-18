@@ -24,5 +24,12 @@ export function proxy(request: NextRequest) {
 // API, and the review-queue write path. `/login` and `/api/auth/*` are
 // deliberately absent so the sign-in flow itself stays reachable.
 export const config = {
-  matcher: ["/", "/api/products/:path*", "/review-queue/:path*", "/api/review-queue/:path*"],
+  matcher: [
+    "/",
+    "/sync/:path*",
+    "/api/products/:path*",
+    "/api/sync/:path*",
+    "/review-queue/:path*",
+    "/api/review-queue/:path*",
+  ],
 };
