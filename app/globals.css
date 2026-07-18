@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
+/*
+  Kayan brand design tokens, ported to Tailwind v4's CSS-first `@theme`.
+  In v4 each `--color-*` / `--font-*` here auto-generates the matching
+  utilities (bg-*, text-*, border-*, font-*). Two palettes are defined:
+  - `kayan-*`  : the primary branded scale used across the app UI.
+  - `brand-*` / `ink-*` : legacy scales some ported components still reference.
+  Fonts are wired to the next/font CSS variables set in app/layout.tsx.
+*/
+@theme {
+  /* Primary Kayan palette (sampled from the logo) */
+  --color-kayan-red: #b32229;
+  --color-kayan-red-dark: #8e1b21;
+  --color-kayan-red-tint: #fbeced;
+  --color-kayan-ink: #242021;
+  --color-kayan-ink-2: #4b4749;
+  --color-kayan-muted: #6b6668;
+  --color-kayan-line: #e7e4e4;
+  --color-kayan-bg: #f7f5f5;
+  --color-kayan-ok: #2f7d4f;
+  --color-kayan-ok-tint: #eaf4ee;
+  --color-kayan-warn: #b7791f;
+  --color-kayan-warn-tint: #fbf3e4;
+
+  /* Legacy brand scale (badge red) */
+  --color-brand: #b32229;
+  --color-brand-50: #fbeaeb;
+  --color-brand-100: #f5cbcd;
+  --color-brand-200: #e99fa3;
+  --color-brand-300: #dc7378;
+  --color-brand-400: #cc4a50;
+  --color-brand-500: #b32229;
+  --color-brand-600: #8f1b21;
+  --color-brand-700: #6e1519;
+  --color-brand-800: #4d0f12;
+  --color-brand-900: #2e090b;
+
+  /* Legacy ink scale (wordmark ink) */
+  --color-ink: #242021;
+  --color-ink-50: #f7f6f6;
+  --color-ink-100: #e8e6e5;
+  --color-ink-200: #cfcbca;
+  --color-ink-300: #a8a2a0;
+  --color-ink-400: #7d7674;
+  --color-ink-500: #5c5654;
+  --color-ink-600: #453f3e;
+  --color-ink-700: #332e2d;
+  --color-ink-800: #242021;
+  --color-ink-900: #171414;
+
+  /* Fonts (next/font CSS variables from app/layout.tsx) */
+  --font-display: var(--font-poppins), var(--font-cairo), sans-serif;
+  --font-body: var(--font-inter), var(--font-cairo), sans-serif;
+  --font-ar: var(--font-cairo), sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* tabular figures for all stock/quantity numbers */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }

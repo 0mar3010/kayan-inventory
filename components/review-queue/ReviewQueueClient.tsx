@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReviewQueueSummary, ReviewItemDetail as ReviewItemDetailType } from "@/lib/matching/review-queue.service";
 import { ReviewQueueList } from "./ReviewQueueList";
 import { ReviewItemDetail } from "./ReviewItemDetail";
@@ -11,7 +11,9 @@ interface Props {
 }
 
 // autoplan T2: reviewerEmail comes from the server-derived session (page.tsx),
-// not a free-text field — confirmedBy is never client-supplied anymore.
+// not a free-text field — confirmedBy is never client-supplied. The approve/
+// reject routes read the actor from the session, so nothing identity-bearing
+// is sent in the request body here.
 export function ReviewQueueClient({ initialItems }: Props) {
   const [items, setItems] = useState(initialItems);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function ReviewQueueClient({ initialItems }: Props) {
       const data: ReviewItemDetailType = await res.json();
       setDetail(data);
     } catch {
-      setActionError("Couldn't load this item. Try selecting it again.");
+      setActionError("تعذّر تحميل هذا الصف. حاول اختياره مجدداً.");
     } finally {
       setDetailLoading(false);
     }
@@ -83,19 +85,32 @@ export function ReviewQueueClient({ initialItems }: Props) {
     }
   }
 
+  // Keyboard nav: J/K to move through the list, A to approve the top
+  // candidate, R to reject. Ignored while typing in a text field.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement) return;
+      const i = items.findIndex((x) => x.id === selectedId);
+      if (e.key === "j" && i < items.length - 1) selectItem(items[i + 1].id);
+      if (e.key === "k" && i > 0) selectItem(items[i - 1].id);
+      if (e.key === "a" && detail?.candidates[0]) handleApprove(detail.candidates[0].productId);
+      if (e.key === "r" && selectedId) handleReject();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [items, selectedId, detail]);
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
-        <ReviewQueueList items={items} selectedId={selectedId} onSelect={selectItem} />
-        <ReviewItemDetail
-          detail={detail}
-          loading={detailLoading}
-          actionPending={actionPending}
-          actionError={actionError}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
+      <ReviewQueueList items={items} selectedId={selectedId} onSelect={selectItem} />
+      <ReviewItemDetail
+        detail={detail}
+        loading={detailLoading}
+        actionPending={actionPending}
+        actionError={actionError}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 }

@@ -31,6 +31,8 @@ export interface ReviewItemDetail extends ReviewQueueSummary {
   candidates: CandidateDTO[];
   guardrailReasons: string[];
   forceManualReview: boolean;
+  oldQuantity: number | null; // last LOCAL_EXCEL snapshot for the top candidate
+  newQuantity: number; // staged quantity from this Excel row
 }
 
 /**
@@ -97,6 +99,17 @@ export async function getReviewItemDetail(itemId: string): Promise<ReviewItemDet
 
   const fresh = await matchRow(row);
 
+  // Stock delta for the reviewer: the last LOCAL_EXCEL reading for the
+  // top candidate (what stock this product currently shows) vs. the
+  // quantity staged from this Excel row. Read-only — no snapshot is
+  // written until the item is actually approved.
+  const lastLocal = fresh.matchedProductId
+    ? await prisma.inventorySnapshot.findFirst({
+        where: { productId: fresh.matchedProductId, source: SourceSystem.LOCAL_EXCEL },
+        orderBy: { recordedAt: "desc" },
+      })
+    : null;
+
   const candidates: CandidateDTO[] = fresh.candidates.map((c) => ({
     productId: c.product.id,
     arabicName: c.product.arabicName,
@@ -121,6 +134,8 @@ export async function getReviewItemDetail(itemId: string): Promise<ReviewItemDet
     candidates,
     guardrailReasons: fresh.guardrails.reasons,
     forceManualReview: fresh.guardrails.forceManualReview,
+    oldQuantity: lastLocal?.quantity ?? null,
+    newQuantity: row.quantity,
   };
 }
 

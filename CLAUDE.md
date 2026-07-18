@@ -146,8 +146,10 @@ Initial full catalog pull via `bulkOperationRunQuery` (not paginated REST — av
 - `lib/matching/confidence.ts` — confidence scoring.
 - `lib/matching/matcher.service.ts` — `matchRow()` orchestrator + `confirmMapping()` append-only write path.
 - `lib/matching/review-queue.service.ts` — review-queue read/approve/reject service. **Patched (autoplan T1):** `approveReviewItem` now re-derives candidates server-side and rejects (409) if `selectedProductId` isn't among them, instead of trusting the client-supplied id blindly.
-- Review-queue API routes + UI (approve/reject, candidate cards, guardrail-reason banners).
-- **Minimal auth (autoplan T2):** `lib/auth.ts` + `middleware.ts` gate `/review-queue` and `/api/review-queue/*` behind a signed-in session; `confirmedBy` is now derived server-side from the session, never from the request body.
+- Review-queue API routes + UI (approve/reject, candidate cards, guardrail-reason banners). **Branded (Kayan RTL) UI** with keyboard nav (J/K/A/R) and a per-item stock-delta panel (`oldQuantity` = last LOCAL_EXCEL snapshot for the top candidate vs. `newQuantity` = staged Excel qty; read-only, computed in `getReviewItemDetail`).
+- **Sales lookup dashboard (Phase 0, now built):** `/` product search behind auth. `lib/matching/product-lookup.service.ts` (`searchProducts` — matches name/brand/crosswalk id, attaches latest LOCAL_EXCEL + SHOPIFY stock via one `DISTINCT ON` query, no N+1) + `app/api/products/search/route.ts` + `components/dashboard/*` + `components/layout/AppHeader.tsx`. Arabic-RTL, Kayan brand tokens.
+- **Branding:** Tailwind v4 `@theme` tokens (`kayan-*`, plus legacy `brand-*`/`ink-*`) in `app/globals.css`; RTL `<html dir="rtl">` + Poppins/Inter/Cairo via next/font in `app/layout.tsx`; brand assets in `public/brand/`.
+- **Minimal auth (autoplan T2):** `lib/auth.ts` + `proxy.ts` gate `/` (dashboard), `/api/products/*`, `/review-queue`, and `/api/review-queue/*` behind a signed-in session; `confirmedBy` is derived server-side from the session, never from the request body. Sign-out via `app/api/auth/logout/route.ts` (clears the session cookie).
 
 **Not yet implemented:** anything below in section 9 (Auth.js/RBAC is still the full Phase 0 implementation — T2 above is a minimal stopgap, not the final auth system), plus test coverage (T4-T9 in the autoplan review — see `~/.gstack/projects/0mar3010-kayan-inventory/`).
 

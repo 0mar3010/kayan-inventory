@@ -20,6 +20,9 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Gate the internal surfaces: the sales dashboard (root), its product-search
+// API, and the review-queue write path. `/login` and `/api/auth/*` are
+// deliberately absent so the sign-in flow itself stays reachable.
 export const config = {
-  matcher: ["/review-queue/:path*", "/api/review-queue/:path*"],
+  matcher: ["/", "/api/products/:path*", "/review-queue/:path*", "/api/review-queue/:path*"],
 };
