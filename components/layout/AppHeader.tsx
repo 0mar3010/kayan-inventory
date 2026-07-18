@@ -52,9 +52,11 @@ export function AppHeader({ active, email }: Props) {
           >
             {initials}
           </div>
-          <Link href="/api/auth/logout" className="text-sm font-medium text-kayan-muted hover:text-kayan-ink">
-            تسجيل الخروج
-          </Link>
+          <form action="/api/auth/logout" method="post">
+            <button type="submit" className="text-sm font-medium text-kayan-muted hover:text-kayan-ink">
+              تسجيل الخروج
+            </button>
+          </form>
         </div>
       </div>
     </header>
