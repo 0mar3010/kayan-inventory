@@ -25,11 +25,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
   }
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email },
-  });
+  let user;
+  try {
+    user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: { email },
+    });
+  } catch (error) {
+    // Most commonly a bad/missing DATABASE_URL (Prisma can't authenticate to
+    // Postgres). Return JSON so the client shows a real message instead of a
+    // body-less 500 surfacing as "Unexpected end of JSON input".
+    console.error("[auth:login] database error", error);
+    return NextResponse.json(
+      { error: "Could not reach the database. Check the server's DATABASE_URL configuration." },
+      { status: 503 }
+    );
+  }
 
   const response = NextResponse.json({ email: user.email });
   response.cookies.set(SESSION_COOKIE_NAME, createSessionCookieValue(user.email), {

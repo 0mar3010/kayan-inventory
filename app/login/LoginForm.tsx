@@ -25,8 +25,10 @@ export function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Login failed");
+      // Tolerate an empty/non-JSON body (e.g. an unhandled 500) so the user
+      // sees the status instead of a raw "Unexpected end of JSON input".
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `Login failed (HTTP ${res.status})`);
       router.push(from);
       router.refresh();
     } catch (err) {
