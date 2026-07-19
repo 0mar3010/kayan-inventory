@@ -1,7 +1,5 @@
 import type { ProductStockRow } from "@/lib/matching/product-lookup.service";
 
-const TILE_BG = ["#FBECED", "#EAF1F6", "#EEF3EA", "#F6F0EA", "#F0ECF4", "#EAF4F2"];
-
 function BoxIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-12 w-12">
@@ -16,22 +14,22 @@ function formatPrice(price: number | null): string {
   return `${Math.round(price).toLocaleString("ar-EG")} ج.م`;
 }
 
-export function ProductCard({ product, index }: { product: ProductStockRow; index: number }) {
-  const tile = TILE_BG[index % TILE_BG.length];
+export function ProductCard({ product }: { product: ProductStockRow; index?: number }) {
   const mismatch =
     product.localStock !== null && product.shopifyStock !== null && product.localStock !== product.shopifyStock;
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-kayan-line bg-white shadow-sm transition hover:border-[#D8D4D4] hover:shadow-md">
-      {/* Image + availability */}
-      <div className="relative grid h-36 shrink-0 place-items-center overflow-hidden" style={{ background: tile }}>
+      {/* Image tile — image box is pinned to the tile so object-contain always
+          has a bounded box and shows the whole product, never a crop. */}
+      <div className="relative h-44 w-full shrink-0 overflow-hidden border-b border-kayan-line bg-white">
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt="" loading="lazy" className="max-h-full max-w-full object-contain p-3" />
+          <img src={product.imageUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-contain p-4" />
         ) : (
-          <span className="text-kayan-ink/25">
+          <div className="grid h-full place-items-center text-kayan-ink/20">
             <BoxIcon />
-          </span>
+          </div>
         )}
         <span
           className={`absolute end-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
