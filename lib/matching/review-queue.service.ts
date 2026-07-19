@@ -217,9 +217,16 @@ export async function approveReviewItem(params: {
       },
     });
 
+    // ActivityLog.actorId is a FK to User.id — confirmedBy is an email,
+    // so resolve (or create) the user row first.
+    const actor = await tx.user.upsert({
+      where: { email: confirmedBy },
+      update: {},
+      create: { email: confirmedBy },
+    });
     await tx.activityLog.create({
       data: {
-        actorId: confirmedBy,
+        actorId: actor.id,
         action: "REVIEW_QUEUE_APPROVE",
         entityType: "SyncRunItem",
         entityId: itemId,
@@ -261,9 +268,14 @@ export async function rejectReviewItem(params: {
       },
     });
 
+    const actor = await tx.user.upsert({
+      where: { email: confirmedBy },
+      update: {},
+      create: { email: confirmedBy },
+    });
     await tx.activityLog.create({
       data: {
-        actorId: confirmedBy,
+        actorId: actor.id,
         action: "REVIEW_QUEUE_REJECT",
         entityType: "SyncRunItem",
         entityId: itemId,
