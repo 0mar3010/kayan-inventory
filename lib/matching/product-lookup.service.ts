@@ -8,9 +8,18 @@ export interface ProductStockRow {
   brand: string;
   category: string | null;
   imageUrl: string | null;
+  price: number | null; // Shopify price (EGP)
   sku: string | null; // a representative external identifier, for display
   localStock: number | null; // latest LOCAL_EXCEL snapshot
   shopifyStock: number | null; // latest SHOPIFY snapshot
+  available: boolean; // in stock on Shopify (latest SHOPIFY snapshot > 0)
+}
+
+export interface ProductSearchResult {
+  products: ProductStockRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /**
@@ -22,22 +31,26 @@ export interface ProductStockRow {
  * Latest-per-(product,source) uses Postgres DISTINCT ON — one query for all
  * matched products, not an N+1 per-row snapshot fetch.
  */
-export async function searchProducts(q: string, limit = 30): Promise<ProductStockRow[]> {
+export async function searchProducts(q: string, page = 1, pageSize = 24): Promise<ProductSearchResult> {
   const term = q.trim();
+  const where = term
+    ? {
+        OR: [
+          { arabicName: { contains: term, mode: "insensitive" as const } },
+          { englishName: { contains: term, mode: "insensitive" as const } },
+          { brand: { contains: term, mode: "insensitive" as const } },
+          { identifiers: { some: { rawExternalId: { contains: term, mode: "insensitive" as const } } } },
+        ],
+      }
+    : {};
+
+  const total = await prisma.product.count({ where });
 
   const products = await prisma.product.findMany({
-    where: term
-      ? {
-          OR: [
-            { arabicName: { contains: term, mode: "insensitive" } },
-            { englishName: { contains: term, mode: "insensitive" } },
-            { brand: { contains: term, mode: "insensitive" } },
-            { identifiers: { some: { rawExternalId: { contains: term, mode: "insensitive" } } } },
-          ],
-        }
-      : {},
-    take: limit,
-    orderBy: { updatedAt: "desc" },
+    where,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    orderBy: [{ brand: "asc" }, { englishName: "asc" }],
     include: {
       identifiers: {
         take: 1,
@@ -46,7 +59,7 @@ export async function searchProducts(q: string, limit = 30): Promise<ProductStoc
     },
   });
 
-  if (products.length === 0) return [];
+  if (products.length === 0) return { products: [], total, page, pageSize };
   const ids = products.map((p) => p.id);
 
   const snaps = await prisma.$queryRaw<
@@ -66,15 +79,22 @@ export async function searchProducts(q: string, limit = 30): Promise<ProductStoc
     else if (s.source === SourceSystem.SHOPIFY) e.shopify = s.quantity;
   }
 
-  return products.map((p) => ({
-    id: p.id,
-    arabicName: p.arabicName,
-    englishName: p.englishName,
-    brand: p.brand,
-    category: p.category,
-    imageUrl: p.imageUrl,
-    sku: p.identifiers[0]?.rawExternalId ?? null,
-    localStock: stock.get(p.id)!.local,
-    shopifyStock: stock.get(p.id)!.shopify,
-  }));
+  const rows = products.map((p) => {
+    const shopifyStock = stock.get(p.id)!.shopify;
+    return {
+      id: p.id,
+      arabicName: p.arabicName,
+      englishName: p.englishName,
+      brand: p.brand,
+      category: p.category,
+      imageUrl: p.imageUrl,
+      price: p.price,
+      sku: p.identifiers[0]?.rawExternalId ?? null,
+      localStock: stock.get(p.id)!.local,
+      shopifyStock,
+      available: (shopifyStock ?? 0) > 0,
+    };
+  });
+
+  return { products: rows, total, page, pageSize };
 }

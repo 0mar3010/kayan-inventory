@@ -2,14 +2,6 @@ import type { ProductStockRow } from "@/lib/matching/product-lookup.service";
 
 const TILE_BG = ["#FBECED", "#EAF1F6", "#EEF3EA", "#F6F0EA", "#F0ECF4", "#EAF4F2"];
 
-function syncState(p: ProductStockRow): { cls: string; label: string; kind: "ok" | "warn" | "danger" } {
-  const { localStock: a, shopifyStock: b } = p;
-  if (a !== null && b !== null && a !== b) return { cls: "danger", label: "غير متطابق", kind: "danger" };
-  const min = Math.min(a ?? Infinity, b ?? Infinity);
-  if (min <= 5) return { cls: "warn", label: "منخفض", kind: "warn" };
-  return { cls: "ok", label: "متطابق", kind: "ok" };
-}
-
 function BoxIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-12 w-12">
@@ -19,41 +11,49 @@ function BoxIcon() {
   );
 }
 
-const BADGE: Record<string, string> = {
-  ok: "bg-kayan-ok-tint text-kayan-ok",
-  warn: "bg-kayan-warn-tint text-kayan-warn",
-  danger: "bg-kayan-red-tint text-kayan-red",
-};
+function formatPrice(price: number | null): string {
+  if (price === null) return "—";
+  return `${Math.round(price).toLocaleString("ar-EG")} ج.م`;
+}
 
 export function ProductCard({ product, index }: { product: ProductStockRow; index: number }) {
-  const s = syncState(product);
   const tile = TILE_BG[index % TILE_BG.length];
+  const mismatch =
+    product.localStock !== null && product.shopifyStock !== null && product.localStock !== product.shopifyStock;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-kayan-line bg-white shadow-sm transition hover:border-[#D8D4D4] hover:shadow-md">
-      <div className="relative grid h-32 place-items-center" style={{ background: tile }}>
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-kayan-line bg-white shadow-sm transition hover:border-[#D8D4D4] hover:shadow-md">
+      {/* Image + availability */}
+      <div className="relative grid h-36 place-items-center" style={{ background: tile }}>
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt="" className="h-full w-full object-contain p-3" />
+          <img src={product.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-3" />
         ) : (
-          <span className="text-kayan-ink/30">
+          <span className="text-kayan-ink/25">
             <BoxIcon />
           </span>
         )}
-        <span className={`absolute end-2.5 top-2.5 rounded-full px-2 py-1 text-[11px] font-bold ${BADGE[s.kind]}`}>
-          {s.label}
+        <span
+          className={`absolute end-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+            product.available ? "bg-kayan-ok-tint text-kayan-ok" : "bg-kayan-red-tint text-kayan-red"
+          }`}
+        >
+          {product.available ? "متوفر" : "غير متوفر"}
         </span>
       </div>
 
-      <div className="p-3.5">
+      {/* Body */}
+      <div className="flex flex-1 flex-col p-3.5">
         {product.englishName && (
-          <div className="truncate font-body text-sm font-semibold text-kayan-ink">{product.englishName}</div>
+          <div dir="ltr" className="truncate text-start font-body text-sm font-semibold text-kayan-ink">
+            {product.englishName}
+          </div>
         )}
         <div className="truncate text-sm text-kayan-ink-2">{product.arabicName}</div>
 
-        <div className="mt-2 flex items-center gap-2 text-xs text-kayan-muted">
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-kayan-muted">
           {product.sku && (
-            <span className="rounded-md bg-kayan-bg px-1.5 py-0.5 font-mono text-[11px] text-kayan-ink-2">
+            <span dir="ltr" className="rounded-md bg-kayan-bg px-1.5 py-0.5 font-mono text-[11px] text-kayan-ink-2">
               {product.sku}
             </span>
           )}
@@ -63,23 +63,28 @@ export function ProductCard({ product, index }: { product: ProductStockRow; inde
           </span>
         </div>
 
-        <div className="mt-3 flex gap-2 border-t border-kayan-line pt-3">
-          <StockCell label="المخزن" value={product.localStock} />
+        {/* Price */}
+        <div className="mt-3">
+          <span className="tnum font-display text-lg font-bold text-kayan-ink">{formatPrice(product.price)}</span>
+        </div>
+
+        {/* Stock: warehouse vs Shopify */}
+        <div className="mt-3 flex items-stretch gap-2 border-t border-kayan-line pt-3">
+          <StockCell label="المخزن" value={product.localStock} highlight={mismatch} />
           <div className="w-px bg-kayan-line" />
-          <StockCell label="شوبيفاي" value={product.shopifyStock} />
+          <StockCell label="شوبيفاي" value={product.shopifyStock} highlight={mismatch} />
         </div>
       </div>
     </article>
   );
 }
 
-function StockCell({ label, value }: { label: string; value: number | null }) {
+function StockCell({ label, value, highlight }: { label: string; value: number | null; highlight: boolean }) {
+  const color = value === 0 ? "text-kayan-red" : highlight ? "text-kayan-warn" : "text-kayan-ink";
   return (
     <div className="flex-1 text-center">
       <div className="mb-0.5 text-[11px] font-semibold text-kayan-muted">{label}</div>
-      <div className={`tnum font-mono text-[17px] font-bold ${value === 0 ? "text-kayan-red" : "text-kayan-ink"}`}>
-        {value === null ? "—" : value}
-      </div>
+      <div className={`tnum font-mono text-[17px] font-bold ${color}`}>{value === null ? "—" : value}</div>
     </div>
   );
 }

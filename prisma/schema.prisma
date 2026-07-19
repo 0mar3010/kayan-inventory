@@ -43,6 +43,7 @@ model Product {
   brand        String
   category     String?
   imageUrl     String?
+  price        Float?   // Shopify variant price (EGP); null if not on Shopify
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

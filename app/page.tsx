@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const initialProducts = await searchProducts("");
+  const initial = await searchProducts("", 1);
   const email = await getSessionEmail(); // non-null: proxy already gated this route
 
   return (
@@ -20,7 +20,11 @@ export default async function DashboardPage() {
             ابحث عن أي منتج وتحقق من المخزون بين المخزن وشوبيفاي في أقل من دقيقة.
           </p>
         </header>
-        <ProductLookupClient initialProducts={initialProducts} />
+        <ProductLookupClient
+          initialProducts={initial.products}
+          initialTotal={initial.total}
+          pageSize={initial.pageSize}
+        />
       </main>
     </>
   );
