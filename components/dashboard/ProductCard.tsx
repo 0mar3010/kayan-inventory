@@ -24,10 +24,10 @@ export function ProductCard({ product, index }: { product: ProductStockRow; inde
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-kayan-line bg-white shadow-sm transition hover:border-[#D8D4D4] hover:shadow-md">
       {/* Image + availability */}
-      <div className="relative grid h-36 place-items-center" style={{ background: tile }}>
+      <div className="relative grid h-36 shrink-0 place-items-center overflow-hidden" style={{ background: tile }}>
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-3" />
+          <img src={product.imageUrl} alt="" loading="lazy" className="max-h-full max-w-full object-contain p-3" />
         ) : (
           <span className="text-kayan-ink/25">
             <BoxIcon />
