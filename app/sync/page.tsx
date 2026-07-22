@@ -1,5 +1,6 @@
 import { getSessionEmail } from "@/lib/auth";
 import { UploadClient } from "@/components/sync/UploadClient";
+import { ShopifyRefreshClient } from "@/components/sync/ShopifyRefreshClient";
 import { AppHeader } from "@/components/layout/AppHeader";
 
 // Behind auth (proxy-gated); writes to the DB — never prerender.
@@ -18,7 +19,13 @@ export default async function SyncPage() {
             ارفع كشف المخزون من المخزن. النظام يطابق كل صنف مع الكتالوج، يُحدّث المطابق تماماً، ويحوّل المشكوك فيه لقائمة المراجعة.
           </p>
         </header>
-        <UploadClient />
+        <div className="space-y-6">
+          <ShopifyRefreshClient />
+          <div>
+            <h2 className="mb-3 font-display text-base font-bold text-kayan-ink">رفع كشف المخزن (Excel)</h2>
+            <UploadClient />
+          </div>
+        </div>
       </main>
     </>
   );
