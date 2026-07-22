@@ -29,6 +29,7 @@ export const config = {
     "/sync/:path*",
     "/api/products/:path*",
     "/api/sync/:path*",
+    "/api/shopify/:path*",
     "/review-queue/:path*",
     "/api/review-queue/:path*",
   ],

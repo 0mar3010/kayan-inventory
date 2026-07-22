@@ -60,9 +60,13 @@ export function ShopifyRefreshClient() {
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-xl border border-kayan-red/30 bg-kayan-red-tint px-4 py-3 text-sm text-kayan-red">
-          {error}
-        </p>
+        <div role="alert" className="mt-4 rounded-xl border border-kayan-red/30 bg-kayan-red-tint px-4 py-3 text-sm text-kayan-red">
+          <p>{error}</p>
+          {/* Plain <a>: next/link would prefetch and start OAuth on render. */}
+          <a href="/api/shopify/oauth/start" className="mt-2 inline-block font-bold underline">
+            احصل على رمز وصول جديد من شوبيفاي ←
+          </a>
+        </div>
       )}
 
       {result && (
