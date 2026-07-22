@@ -22,7 +22,13 @@ export async function shopifyGraphQL<T>(query: string, variables?: Record<string
   });
 
   if (!res.ok) {
-    throw new Error(`Shopify API returned ${res.status}${res.status === 401 ? " — check SHOPIFY_ADMIN_TOKEN" : ""}`);
+    // Diagnostic detail (domain + token shape only — never the token itself)
+    // so a wrong domain vs a wrong/!shpat_ credential is obvious immediately.
+    const shape = `${token.slice(0, 6)}…, ${token.length} chars`;
+    throw new Error(
+      `Shopify API returned ${res.status} for domain "${domain}" (token ${shape}). ` +
+        `Domain must be the *.myshopify.com one, and the token must be the Admin API access token (starts with shpat_).`
+    );
   }
 
   const json = (await res.json()) as { data?: T; errors?: unknown };
